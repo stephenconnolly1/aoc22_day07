@@ -3,9 +3,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 use std::env;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::rc::Weak;
+mod tree;
 
 
 
@@ -18,7 +16,6 @@ fn main() {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(x) = line {
-
                 println!("data: {x}");
             }
         }
