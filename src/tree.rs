@@ -75,6 +75,7 @@ impl Tree {
                 println!("name: {0}, size: {1}", self.name, self.size );
             } 
             else {
+                println!("dirname: {0}, size: {1}", self.name, self.size);
                 for ch in self.children.borrow().iter() {
                     ch.walk();
                 }
@@ -121,7 +122,14 @@ mod test {
                 children: RefCell::new(Vec::new()),
             });
             tree.append(&child1, &child2); 
-            assert_eq!(tree.root.borrow().children.borrow().len(), 1);
+            assert_eq!(child1.children.borrow().len(), 1);
+
+            tree.append(&child1, &Rc::new(Node {
+                name:"file2".to_string(), 
+                size:25,
+                children:RefCell::new(vec![])
+            })); 
+            assert_eq!(child1.children.borrow().len(), 2);
 
         }
         tree.root.borrow().walk();
