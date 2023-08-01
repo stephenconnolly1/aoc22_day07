@@ -5,19 +5,25 @@ use std::path::Path;
 use std::env;
 mod tree;
 
-
-
+#[derive(Debug)]
+enum Command {
+    Cd (String),
+    Ls,
+    Dir (String),
+    File (u32, String)
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let file_path = &args[1];
-
+    let mut command: Command;
     if let Ok(lines) = read_lines(file_path) {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
             if let Ok(x) = line {
                 println!("data: {x}");
-                parse_line(&x);
+                let command = parse_line(&x);
+                dbg!(command);
             }
         }
     } else {
@@ -33,19 +39,29 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
-fn parse_line(line: &String){
+fn parse_line(line: &String) -> Command{
     let tokens: Vec<&str> = line.split(" ").collect();
     if tokens[0].eq(&String::from("$")) {
         println!("line is a command");
         if tokens[1].eq(&String::from("ls")){
             println!("List command");
+            return Command::Ls;
         }
-        else if tokens[1].eq(&String::from("cd")){
-            println!("ChangeDir command");
+        if tokens[1].eq(&String::from("cd")){
+            println!("ChangeDir command {}", tokens[2].to_string());
+            return Command::Cd(tokens[2].to_string());
         }
-        else {
-            assert!(false, "Unrecognised command: {0}", tokens[1]);
-        }
+        assert!(false, "Unrecognised command: {0}", tokens[1]);
+        return Command::Ls;
     }
-
+    // non-commands        
+    if tokens[0].eq(&String::from("dir")) {
+        println!("Directory {}", tokens[1]);
+        return Command::Dir(tokens[1].to_string());
+    }
+    if let Ok(result) = tokens[0].parse::<u32>() {
+        println!("File Name {}, Size {}", tokens[1], result);
+        return Command::File(result, tokens[1].to_string());
+    }
+    return Command::Ls;
 }

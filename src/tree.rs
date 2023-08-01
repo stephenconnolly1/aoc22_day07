@@ -56,7 +56,10 @@ impl Tree {
     pub struct Tree {
         pub root: RefCell<Rc<Node>>
     }
-
+    enum NodeType {
+        File,
+        Dir,
+    }
     pub struct Node {
         pub name:       String,
         pub size:       u32,
