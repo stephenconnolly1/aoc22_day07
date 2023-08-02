@@ -4,6 +4,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::env;
 mod tree;
+use crate::tree::tree::Tree;
 
 #[derive(Debug)]
 enum Command {
@@ -17,6 +18,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let file_path = &args[1];
     let mut command: Command;
+    let tree: Tree = Tree::new();
     if let Ok(lines) = read_lines(file_path) {
         // Consumes the iterator, returns an (Optional) String
         for line in lines {
