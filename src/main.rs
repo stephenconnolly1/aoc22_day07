@@ -56,6 +56,8 @@ fn main() {
         println!("Unable to open file");
     }
     tree.root.walk();
+//    tree.root.get_dir_size();
+    tree.root.walk();
 
 }
 
@@ -92,6 +94,4 @@ fn parse_line(line: &String) -> Command{
 //    assert!(false, "Unrecognised command: {0}", tokens[1]);
     return Command::Ls;
 }
-
-
 
