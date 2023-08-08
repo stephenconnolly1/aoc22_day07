@@ -1,5 +1,5 @@
 
-use std::borrow::BorrowMut;
+//use std::borrow::BorrowMut;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -7,8 +7,8 @@ use std::env;
 mod tree;
 use crate::tree::tree::*;
 use std::rc::Rc;
-use std::cell::RefCell;
-use std::rc::Weak;
+//use std::cell::RefCell;
+//use std::rc::Weak;
 
 #[derive(Debug)]
  enum Command {
@@ -21,7 +21,7 @@ use std::rc::Weak;
 fn main() {
     let args: Vec<String> = env::args().collect();
     let file_path = &args[1];
-    let mut command: Command;
+    //let mut command: Command;
     let tree: Tree = Tree::new();
     let mut node = tree.root.clone(); 
     if let Ok(lines) = read_lines(file_path) {
@@ -39,7 +39,6 @@ fn main() {
                     } else if s == "..".to_string() {
                         node = node.get_parent();
                     } else { 
-//                        tree.append(&node, &Rc::new(Node::new_dir(s.clone())));
                         node = node.get_child(s);
                     }},
                     Command::Ls => {},
@@ -55,9 +54,8 @@ fn main() {
     } else {
         println!("Unable to open file");
     }
-    tree.root.walk();
-//    tree.root.get_dir_size();
-    tree.root.walk();
+    tree.root.update_total_sizes();
+    tree.root.walk(&String::new());
 
 }
 

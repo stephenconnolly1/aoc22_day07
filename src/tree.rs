@@ -1,7 +1,7 @@
 
 
 pub mod tree {
-    use std::borrow::BorrowMut;
+//    use std::borrow::BorrowMut;
     use std::rc::Rc;
     use std::cell::RefCell;
     use std::rc::Weak;
@@ -64,16 +64,16 @@ impl Tree {
     }
     pub struct Node {
         pub name:       String,
-        pub size:       u32,
-        pub parent: RefCell<Weak<Node>>,
+        pub size:       RefCell<u32>,
+        pub parent:     RefCell<Weak<Node>>,
         pub children:   RefCell<Vec<Rc<Node>>>,
-        pub node_type:       NodeType,
+        pub node_type:  NodeType,
     }
     impl Node {
         pub fn new() -> Node {
             Node {
                 name: "".to_string(),
-                size: 0,
+                size: RefCell::new(0),
                 parent: RefCell::new(Weak::new()),
                 children: RefCell::new(Vec::new()),
                 node_type: NodeType::Dir,
@@ -82,7 +82,7 @@ impl Tree {
         pub fn new_file(name: String, size: u32) -> Node {
             let mut n = Node::new();
             n.name = name;
-            n.size = size;
+            n.size = RefCell::new(size);
             n.node_type = NodeType::File;
             return n;
         }
@@ -91,19 +91,26 @@ impl Tree {
             n.name = name;
             return n;
         }
-        pub fn walk(&self) {
+        pub fn walk(&self, level: &String) {
+            let threshold: u32 = 100000;
+            let level_loc = format!(" {}", level);
             if self.node_type==NodeType::File {
-                println!("Walk: filename: {0}, size: {1}", self.name, self.size );
+                // println!("{}filename: {}, size: {}", level_loc, self.name, self.size.borrow() );
             } 
             else {
-                println!("Walk: dirname: {0}, size: {1}", self.name, self.size);
+                let s = *self.size.borrow();
+//                println!("{}dirname: {}, size: {}", level_loc, self.name, s);
+                if s <= threshold {
+                    println!("Below threshold: {}", s);
+                }
                 for ch in self.children.borrow().iter().filter(|&x| x.node_type==NodeType::File) {
-                    ch.walk();
+                    ch.walk(&level_loc);
                 }
                 for ch in self.children.borrow().iter().filter(|&x| x.node_type==NodeType::Dir) {
-                    ch.walk();
+                    ch.walk(&level_loc);
                 }
             }
+//            println!("Sum of smaller directories: {}", sum_small_dirs);
         }
         pub fn get_child(&self, node_name: String) -> Rc<Node> {
             if let Some(r) =  self.children.borrow().iter().find(|&x|x.name == *node_name ) {
@@ -115,16 +122,17 @@ impl Tree {
             assert!( self.name != "/".to_string());
             return self.parent.borrow().upgrade().unwrap();
         }
-        pub fn get_dir_size(&self, node: &RefCell<Rc<Node>>) -> u32 {
-            if node.borrow().node_type == NodeType::File {
-                return node.borrow().size;
+        pub fn update_total_sizes(&self) -> u32 {
+            if self.node_type == NodeType::File {
+                return *self.size.borrow();
             } 
             else { // Directory
                 let mut s: u32 = 0;
-                for ch in node.borrow_mut().children.borrow().iter() {
-                    s  = s + ch.size;
+                for ch in self.children.borrow().iter() {
+                    s  = s + ch.update_total_sizes();
                 }
-                let m = node.borrow_mut().size;
+                *self.size.borrow_mut() = s;
+                println!("Dir:{}, total_size:{}, children:{}", self.name, s, self.children.borrow().len());
                 return s;
             }
         }
@@ -152,43 +160,43 @@ impl Tree {
 
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, borrow::BorrowMut};
+    use std::{rc::Rc, /*borrow::BorrowMut*/};
 
     use super::tree::*;
     #[test]
     fn t1() {
         let tree = Tree::new();
         {
+            tree.append(&tree.root, &Rc::new(Node::new_file("file3".to_string(), 10001)));
             let dir1 =Rc::new(Node::new_dir("dir1".to_string())); 
-            tree.append(&tree.root, &dir1);  
-            assert_eq!(tree.root.children.borrow().len(), 1);
-
-            let file1 = Rc::new(Node::new_file("file1".to_string(), 20));
-            tree.append(&dir1, &file1); 
+            tree.append(&tree.root, &dir1);
+            assert_eq!(tree.root.children.borrow().len(), 2);
+            
+//            let file1 = Rc::new(Node::new_file("file1".to_string(), 20));
+            tree.append(&dir1, &Rc::new(Node::new_file("file1".to_string(), 20))); 
             assert_eq!(dir1.children.borrow().len(), 1);
 
             tree.append(&dir1, &Rc::new(Node::new_file("file2".to_string(), 25)));
             assert_eq!(dir1.children.borrow().len(), 2);
 
         }
-        tree.root.walk();
 
         let my_node: Rc<Node> = tree.root.get_child("dir1".to_string());
         assert_eq!(my_node.name, "dir1".to_string());
         let my_node2: Rc<Node> = my_node.get_child("file2".to_string());
         assert_eq!(my_node2.name, "file2".to_string());
-        assert_eq!(my_node.size, 0);
-        assert_eq!(my_node2.size, 25);
-//        assert_eq!(my_node.get_dir_size(), 45);
-//        assert_eq!(tree.root.get_dir_size(), 45);
+        assert_eq!(*my_node.size.borrow(), 0);
+        assert_eq!(*my_node2.size.borrow(), 25);
+        assert_eq!(my_node.update_total_sizes(), 45);
+        assert_eq!(tree.root.update_total_sizes(), 10046);
         let mut cur_node = my_node2.clone();
         assert_eq!(cur_node.name, "file2".to_string());
         cur_node = cur_node.get_parent();
         assert_eq!(cur_node.name, "dir1".to_string());
         cur_node = cur_node.get_parent();
         assert_eq!(cur_node.name, "/".to_string());
-        tree.root.walk();
-        //cur_node = cur_node.get_parent();
+        tree.root.update_total_sizes();
+        tree.root.walk(&String::new());
 
         
     }
